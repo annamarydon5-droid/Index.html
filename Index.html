@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Surgery Posting Tracker</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f6f5f1;--card:#fff;--ink:#1f2421;--mute:#69706b;--line:#e2e0d8;--accent:#0f766e;--accent-ink:#fff;--soft:#e3f1ee;--warn:#b45309;--bad:#b91c1c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141816;--card:#1e2421;--ink:#ecefed;--mute:#9aa39e;--line:#2e3632;--accent:#2dd4bf;--accent-ink:#06201c;--soft:#173430;--warn:#fbbf24;--bad:#f87171}}
+:root[data-theme="dark"]{--bg:#141816;--card:#1e2421;--ink:#ecefed;--mute:#9aa39e;--line:#2e3632;--accent:#2dd4bf;--accent-ink:#06201c;--soft:#173430;--warn:#fbbf24;--bad:#f87171}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+main{max-width:760px;margin:0 auto;padding:12px 14px 90px}
+h1{font-size:22px;margin:6px 0 2px}
+h2{font-size:17px;margin:20px 0 8px}
+.sub{color:var(--mute);font-size:14px;margin:0 0 10px}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;gap:6px;padding:8px 0;border-bottom:1px solid var(--line)}
+nav button{flex:1;padding:11px 4px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;font:600 15px inherit;font-family:inherit}
+nav button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px 14px;margin:8px 0}
+.row{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row input[type=checkbox]{width:26px;height:26px;flex:none;margin-top:1px;accent-color:var(--accent)}
+.row b{display:block}
+.row small{color:var(--mute);display:block;font-size:13.5px}
+.row.done b{text-decoration:line-through;color:var(--mute)}
+button.p,button.s{font:600 16px inherit;font-family:inherit;padding:12px 16px;border-radius:10px;border:1px solid var(--accent)}
+button.p{background:var(--accent);color:var(--accent-ink)}
+button.s{background:transparent;color:var(--accent)}
+button.d{background:transparent;color:var(--bad);border:1px solid var(--bad);font:600 15px inherit;font-family:inherit;padding:10px 14px;border-radius:10px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+label{display:block;font-weight:600;font-size:14px;margin:12px 0 4px}
+input[type=text],input[type=number],input[type=date],select,textarea{width:100%;font:16px inherit;font-family:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+textarea{min-height:76px;resize:vertical}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.case{padding:12px 0;border-bottom:1px solid var(--line)}
+.case:last-child{border-bottom:0}
+.tag{display:inline-block;font-size:12.5px;padding:2px 9px;border-radius:99px;background:var(--soft);color:var(--accent);margin-right:5px;font-weight:600}
+.tag.warn{color:var(--warn)}.tag.bad{color:var(--bad)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center}
+.stat b{font-size:26px;display:block;color:var(--accent)}
+.stat span{font-size:12.5px;color:var(--mute)}
+.cov{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.cov:last-child{border-bottom:0}
+.cov .n{width:28px;text-align:right;font-weight:700}
+.cov .t{flex:1}
+.cov .bg{flex:1.2;height:8px;background:var(--line);border-radius:9px;overflow:hidden}
+.cov .bg i{display:block;height:100%;background:var(--accent)}
+.empty{color:var(--mute);padding:16px 0;text-align:center}
+.det{margin-top:8px;font-size:15px}.det p{margin:6px 0}.det b{color:var(--mute);font-size:12.5px;text-transform:uppercase;letter-spacing:.03em;display:block}
+.note{font-size:13px;color:var(--mute);margin-top:18px}
+@media(max-width:420px){.g2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+<h1>🩺 Surgery Posting Tracker</h1>
+<p class="sub" id="sync">Loading…</p>
+<nav id="nav"></nav>
+<div id="view"></div>
+<p class="note">Saved automatically. Your data is private to you.</p>
+</main>
+<script>
+const STEPS=[
+["Pick one case","Ward patient, OP case, or tomorrow’s OT patient (see them the evening before)."],
+["Take the history (10–15 min)","Chief complaint + duration, HPI (site, onset, character, radiation, associated, aggravating/relieving, progression), past, drug, family, personal history."],
+["Examine","General, local, relevant systemic."],
+["Commit to your diagnosis first (5 min)","Top 3 differentials, ranked. Which history points favour #1? What would change your mind?"],
+["Check with the team","Ask the PG or consultant: “What point clinched the diagnosis?”"],
+["Read the book answer in NotebookLM (20–25 min)","Features, investigations in order, management (conservative vs surgical, indications), complications, differentials. Check every citation."],
+["Alpha Learn AI (10–15 min)","Exam-relevant points and a few MCQs on the same topic."],
+["Log the case (5 min)","Use the Cases tab. Note one thing you got wrong or learned."]];
+const FIVE=["Red flags in the history","Examination finding that confirms it","First-line investigation","Standard management","Commonest complication"];
+const SETUP=["Watch the history-taking reel","Add surgery books to NotebookLM","Decide which days are Ward / OP / OT","Open Alpha Learn AI and find the surgery section"];
+const SUNDAY=["Re-read all case logs from the week","15–20 MCQs in Alpha Learn on those topics","Note differentials you keep missing","Pick case types you haven’t seen for next week"];
+const CATS=["Acute abdomen","Hernia","Gallbladder / biliary","Thyroid","Breast","Diabetic foot / ulcer","Abscess / cellulitis","Vascular (varicose / PAD)","Anorectal","Urology","Trauma","Other"];
+let S={setup:{},days:{},cases:[]},tab="today",editId=null,openId=null,dbDoc=null,timer=null;
+const $=s=>document.querySelector(s);
+const esc=t=>String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const LS="surgtracker_v1";
+function loadLocal(){try{const r=localStorage.getItem(LS);if(r){const o=JSON.parse(r);if(o&&o.cases)S=Object.assign({setup:{},days:{},cases:[]},o)}}catch(e){}}
+function save(){
+  try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}
+  if(!dbDoc)return;
+  clearTimeout(timer);
+  timer=setTimeout(async()=>{try{await dbDoc.set(JSON.parse(JSON.stringify(S)));$("#sync").textContent="Saved ✓"}catch(e){$("#sync").textContent="Saved on this device only"}},500);
+}
+async function initDb(){
+  try{
+    if(!window.claude||!claude.use){$("#sync").textContent="Saved on this device";return}
+    const db=await claude.use("db"),user=await claude.use("user");
+    if(!db||!user){$("#sync").textContent="Saved on this device";return}
+    const id=await user.id();
+    if(!id){$("#sync").textContent="Saved on this device";return}
+    dbDoc=db.collection("data/users/"+id).doc("tracker");
+    const snap=await dbDoc.get();
+    if(snap.exists){const d=snap.data();if(d&&d.cases)S=Object.assign({setup:{},days:{},cases:[]},d);try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}render()}
+    else if(S.cases.length||Object.keys(S.days).length||Object.keys(S.setup).length){await dbDoc.set(JSON.parse(JSON.stringify(S)))}
+    $("#sync").textContent="Synced ✓ (works across your devices)";
+  }catch(e){$("#sync").textContent="Saved on this device"}
+}
+function nav(){
+  const t=[["today","Today"],["cases","Cases ("+S.cases.length+")"],["progress","Progress"]];
+  $("#nav").innerHTML=t.map(x=>`<button class="${tab===x[0]?"on":""}" data-t="${x[0]}">${x[1]}</button>`).join("");
+  $("#nav").querySelectorAll("button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;editId=null;render();scrollTo(0,0)});
+}
+function chk(items,store,prefix){
+  return items.map((it,i)=>{const k=prefix+i,on=!!store[k],txt=Array.isArray(it)?it:[it];
+    return `<div class="row ${on?"done":""}"><input type="checkbox" data-k="${k}" ${on?"checked":""}><div><b>${i+1}. ${esc(txt[0])}</b>${txt[1]?`<small>${esc(txt[1])}</small>`:""}</div></div>`}).join("");
+}
+function viewToday(){
+  const d=today();S.days[d]=S.days[d]||{};const st=S.days[d];
+  const setupDone=SETUP.every((_,i)=>S.setup["s"+i]);
+  const n=STEPS.filter((_,i)=>st["a"+i]).length;
+  const dow=new Date().getDay();
+  let h=`<h2>${new Date().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"short"})}</h2>`;
+  if(!setupDone)h+=`<h2>One-time setup</h2><div class="card" data-store="setup">${chk(SETUP,S.setup,"s")}</div>`;
+  h+=`<h2>Today’s case loop <span class="tag">${n}/8</span></h2><div class="card" data-store="day">${chk(STEPS,st,"a")}</div>`;
+  h+=`<h2>Five questions for today’s case</h2><div class="card" data-store="day">${chk(FIVE,st,"q")}</div>`;
+  if(dow===0)h+=`<h2>Sunday review</h2><div class="card" data-store="day">${chk(SUNDAY,st,"r")}</div>`;
+  h+=`<div class="bar"><button class="p" id="newcase">+ Log today’s case</button></div>`;
+  if(setupDone)h+=`<p class="sub"><a href="#" id="showsetup" style="color:var(--accent)">Show setup list again</a></p>`;
+  $("#view").innerHTML=h;
+  $("#view").querySelectorAll(".card").forEach(c=>{const store=c.dataset.store;c.querySelectorAll("input[type=checkbox]").forEach(cb=>cb.onchange=()=>{(store==="setup"?S.setup:S.days[today()])[cb.dataset.k]=cb.checked;save();render()})});
+  $("#newcase").onclick=()=>{tab="cases";editId="new";render();scrollTo(0,0)};
+  const ss=$("#showsetup");if(ss)ss.onclick=e=>{e.preventDefault();S.setup={};save();render()};
+}
+const F=[["date","Date","date"],["posting","Posting","sel",["Ward","OP","OT"]],["agesex","Age / sex","text"],["cat","Category","sel",CATS],
+["cc","Chief complaint + duration","text"],["hx","Key history clues / red flags","ta"],["exam","Key examination findings","ta"],
+["mydx","My top 3 differentials (ranked), and why #1","ta"],["actual","Actual diagnosis","text"],["match","Did I get it right?","sel",["Yes","Partly","No"]],
+["inv","Confirmatory investigation(s)","ta"],["mgmt","Management (from the book, 3 lines)","ta"],["learned","One thing I got wrong or learned","ta"]];
+function viewForm(){
+  const c=editId==="new"?{date:today()}:S.cases.find(x=>x.id===editId)||{};
+  let h=`<h2>${editId==="new"?"New case":"Edit case"}</h2><div class="card" style="padding-bottom:14px">`;
+  let half=[];
+  F.forEach(f=>{
+    const v=c[f[0]]||"";let el;
+    if(f[2]==="ta")el=`<textarea data-f="${f[0]}">${esc(v)}</textarea>`;
+    else if(f[2]==="sel")el=`<select data-f="${f[0]}"><option value="">Select…</option>${f[3].map(o=>`<option ${o===v?"selected":""}>${esc(o)}</option>`).join("")}</select>`;
+    else el=`<input type="${f[2]}" data-f="${f[0]}" value="${esc(v)}">`;
+    h+=`<div><label>${f[1]}</label>${el}</div>`;
+  });
+  h+=`<div class="bar"><button class="p" id="savecase">Save case</button><button class="s" id="cancel">Cancel</button></div></div>`;
+  $("#view").innerHTML=h;
+  $("#savecase").onclick=()=>{
+    const o={};$("#view").querySelectorAll("[data-f]").forEach(e=>o[e.dataset.f]=e.value.trim());
+    if(!o.cc&&!o.actual){alert("Add at least a chief complaint or diagnosis.");return}
+    if(editId==="new"){o.id="c"+Date.now();S.cases.unshift(o);const d=S.days[o.date||today()]=S.days[o.date||today()]||{};d.a7=true}
+    else{const i=S.cases.findIndex(x=>x.id===editId);if(i>=0)S.cases[i]=Object.assign({},S.cases[i],o)}
+    S.cases.sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+    save();editId=null;render();scrollTo(0,0)};
+  $("#cancel").onclick=()=>{editId=null;render()};
+}
+function viewCases(){
+  if(editId)return viewForm();
+  let h=`<div class="bar"><button class="p" id="newcase">+ New case</button></div>`;
+  if(!S.cases.length)h+=`<div class="empty">No cases yet. Log your first one after today’s round.</div>`;
+  else h+=`<div class="card">`+S.cases.map(c=>{
+    const m=c.match==="Yes"?"":c.match==="Partly"?"warn":c.match==="No"?"bad":"";
+    const o=openId===c.id;
+    return `<div class="case"><div data-o="${c.id}" style="cursor:pointer"><b>${esc(c.actual||c.cc||"Untitled")}</b><br>
+    <span class="tag">${esc(c.date||"")}</span>${c.posting?`<span class="tag">${esc(c.posting)}</span>`:""}${c.cat?`<span class="tag">${esc(c.cat)}</span>`:""}${c.match?`<span class="tag ${m}">${esc(c.match)}</span>`:""}
+    <div style="color:var(--mute);font-size:14px;margin-top:3px">${esc([c.agesex,c.cc].filter(Boolean).join(" · "))}</div></div>
+    ${o?`<div class="det">${F.slice(5).map(f=>c[f[0]]?`<p><b>${f[1]}</b>${esc(c[f[0]]).replace(/\n/g,"<br>")}</p>`:"").join("")}<div class="bar"><button class="s" data-e="${c.id}">Edit</button><button class="d" data-x="${c.id}">Delete</button></div></div>`:""}</div>`}).join("")+`</div>`;
+  $("#view").innerHTML=h;
+  $("#newcase").onclick=()=>{editId="new";render();scrollTo(0,0)};
+  $("#view").querySelectorAll("[data-o]").forEach(e=>e.onclick=()=>{openId=openId===e.dataset.o?null:e.dataset.o;render()});
+  $("#view").querySelectorAll("[data-e]").forEach(e=>e.onclick=()=>{editId=e.dataset.e;render();scrollTo(0,0)});
+  $("#view").querySelectorAll("[data-x]").forEach(e=>e.onclick=()=>{if(confirm("Delete this case?")){S.cases=S.cases.filter(x=>x.id!==e.dataset.x);save();render()}});
+}
+function viewProgress(){
+  const total=S.cases.length,judged=S.cases.filter(c=>c.match),right=judged.filter(c=>c.match==="Yes").length;
+  const days=new Set(S.cases.map(c=>c.date)).size;
+  const cnt={};CATS.forEach(c=>cnt[c]=0);S.cases.forEach(c=>{if(c.cat)cnt[c.cat]=(cnt[c.cat]||0)+1});
+  const max=Math.max(1,...Object.values(cnt));
+  const missed=S.cases.filter(c=>c.match==="No"||c.match==="Partly");
+  let h=`<h2>Your month so far</h2><div class="stats"><div class="stat"><b>${total}</b><span>cases logged</span></div><div class="stat"><b>${days}</b><span>days with a case</span></div><div class="stat"><b>${judged.length?Math.round(100*right/judged.length)+"%":"–"}</b><span>diagnosis right</span></div></div>`;
+  h+=`<h2>Coverage by category</h2><div class="card">`+CATS.map(c=>`<div class="cov"><span class="t">${esc(c)}</span><span class="bg"><i style="width:${100*cnt[c]/max}%"></i></span><span class="n">${cnt[c]}</span></div>`).join("")+`</div><p class="sub">Categories at 0 are what to look for next.</p>`;
+  h+=`<h2>Cases I got wrong or partly wrong</h2>`;
+  h+=missed.length?`<div class="card">`+missed.map(c=>`<div class="case"><b>${esc(c.actual||c.cc)}</b><div style="color:var(--mute);font-size:14px">${esc(c.learned||"")}</div></div>`).join("")+`</div>`:`<div class="empty">Nothing yet.</div>`;
+  $("#view").innerHTML=h;
+}
+function render(){nav();({today:viewToday,cases:viewCases,progress:viewProgress})[tab]()}
+loadLocal();render();initDb();
+</script>
+</body>
+</html>
